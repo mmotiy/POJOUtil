@@ -1,6 +1,8 @@
-package com.upsoft.sep.eps.eeces.tools;
+package com.xxx.xxx.xxx;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by mmotiy on 2018/3/27.
@@ -25,21 +27,32 @@ public class POJOUtil {
             }
         }
 
-        public Obj set(String name,Object param){
+        public Obj set(String names,Object... objects){
+            String[] split = names.split(",");
+            for(int i=split.length;i-->0;set(split[i],objects[i])){}
+            return this;
+        }
+
+        public Obj set(String name,Object param) {
             //获取所有的字段
             Field[] declaredFields = target.getClass().getDeclaredFields();
-            for(Field field:declaredFields){
-                field.setAccessible(true);
-                if(field.getName().equals(name)){
-                    //判断数据类型是否一致
-                    if(field.getType() == param.getClass()){
-                        try {
-                            field.set(this.target,param);
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
+            try{
+                for(Field field:declaredFields){
+                    field.setAccessible(true);
+                    if(field.getName().equals(name)){
+                        //判断数据类型是否一致 判断参数类型是不是 目标类型的子类或者实现
+                        if(isParentOrBrother(field.getType(),param.getClass())){
+                            try {
+                                field.set(this.target,field.getType().cast(param));
+                                break;
+                            } catch (IllegalAccessException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
+            }catch (Exception e){
+                e.printStackTrace();
             }
             return this;
         }
@@ -49,22 +62,26 @@ public class POJOUtil {
         }
     }
 
-    public static void main(String[] args) {
-        A over = POJOUtil.build(A.class).set("leap", false).set("a", "hello mmotiy!").over();
-        System.out.println(over);
+    /**
+     *  判断param是否是tar的实现
+     * @param tar
+     * @param param
+     * @return
+     */
+    private static boolean isParentOrBrother(Class tar,Class param){
+        Class temp = param;
+        while(temp!=null){
+            if(temp.getName().equals(tar.getName())){
+                return true;
+            }
+            temp = temp.getSuperclass();
+        }
+        Class[] interfaces = param.getInterfaces();
+        for(Class itf:interfaces){
+            if(itf.getName().equals(tar.getName())){
+                return true;
+            }
+        }
+        return false;
     }
 }
-
-class A{
-    boolean leap;
-    String a;
-
-    @Override
-    public String toString() {
-        return "A{" +
-                "leap=" + leap +
-                ", a='" + a + '\'' +
-                '}';
-    }
-}
-
